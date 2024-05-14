@@ -18,7 +18,7 @@ export function HomeHeader() {
                     Olá,
                 </Text>
 
-                <Heading color="white" fontSize="md">
+                <Heading color="white" fontSize="md" fontFamily="heading">
                     Silas
                 </Heading>
             </VStack>
