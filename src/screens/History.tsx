@@ -1,19 +1,42 @@
+import { Heading, VStack, SectionList, Text, useToast } from "native-base";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { HistoryCard } from "@components/HistoryCard";
 import { ScreenHeader } from "@components/ScreenHeader";
-import { Heading, VStack, SectionList, Text } from "native-base";
-import { useState } from "react";
+import { api } from "@services/api";
+import { AppError } from "@utils/AppError";
+import { HistoryByDayDTO } from "@dtos/HistoryByDayDTO";
 
 export function History() {
-    const [exercises, setExercises] = useState([
-        {
-            title: '10.08.2022',
-            data: [ 'Puxada frontal', 'Remada unilateral' ]
-        },
-        {
-            title: '11.08.2022',
-            data: [ 'Puxada frontal']
+    const [isLoading, setIsLoading] = useState(true)
+    const [exercises, setExercises] = useState<HistoryByDayDTO[]>([])
+
+    const toast = useToast()
+
+    async function fetchHistory() {
+        try {
+            setIsLoading(true)
+
+            const response = await api.get('/history')
+            setExercises(response.data)
+
+        } catch (error) {
+            const isAppError = error instanceof AppError
+            const title = isAppError ? error.message : 'Não foi possível carregar o histórico. Tente mais tarde.'
+
+            toast.show({
+                title,
+                placement: 'top',
+                bgColor: 'red.500'
+            }) 
+        } finally { 
+            setIsLoading(false)
         }
-    ])
+    }
+
+    useFocusEffect(useCallback(() => {
+        fetchHistory()
+    }, []))
 
     return (
         <VStack flex={1}>
@@ -21,9 +44,11 @@ export function History() {
 
             <SectionList 
                 sections={exercises}
-                keyExtractor={item => item}
+                keyExtractor={item => item.id}
                 renderItem={({ item }) => (
-                    <HistoryCard />
+                    <HistoryCard 
+                        data={item}
+                    />
                 )}
                 renderSectionHeader={({ section}) => (
                     <Heading color="gray.200" fontSize="md" fontFamily="heading" mt={10} mb={3}>

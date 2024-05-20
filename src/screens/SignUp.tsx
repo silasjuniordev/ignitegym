@@ -1,5 +1,6 @@
-import { Center, Heading, Image, ScrollView, Text, VStack } from "native-base";
+import { Center, Heading, Image, ScrollView, Text, VStack, useToast } from "native-base";
 import { useNavigation } from "@react-navigation/native";
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 
 import BackgroundImg from '@assets/background.png'
@@ -8,6 +9,9 @@ import { Input } from "@components/Input";
 import { Button } from "@components/Button";
 import * as yup from 'yup'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { api } from "@services/api";
+import { AppError } from "@utils/AppError";
+import { useAuth } from "@hooks/useAuth";
 
 type FormDataProps = {
     name: string
@@ -26,12 +30,35 @@ const signUpSchema = yup.object({
 export function SignUp() {
     const navigation = useNavigation()
 
+    const { signIn } = useAuth()
+
+    const [ isLoading, setIsLoading ] = useState(false)
+
+    const toast = useToast()
+
     const { control, handleSubmit, formState: { errors } } = useForm<FormDataProps>({
         resolver: yupResolver(signUpSchema)
     });
 
-    function handleSignUp( { name, email, password, password_confirm }: FormDataProps ) {
-        console.log({ name, email, password, password_confirm })
+    async function handleSignUp( { name, email, password }: FormDataProps ) {
+        try {
+            setIsLoading(true)
+
+            await api.post('/users', { name, email, password })
+            await signIn(email, password)
+            
+        } catch (error) {
+            setIsLoading(false)
+
+            const isAppError = error instanceof AppError
+            const title = isAppError ? error.message : 'Não foi possível criar a conta. Tente mais tarde.'
+            
+            toast.show({
+                title,
+                placement: 'top',
+                bgColor: 'red.500'
+            })
+        }
     }
 
     function handleGoBack() {
@@ -122,6 +149,7 @@ export function SignUp() {
                     <Button 
                         title="Criar e acessar" 
                         onPress={handleSubmit(handleSignUp)}
+                        isLoading={isLoading}
                     />
                 </Center>
                 
